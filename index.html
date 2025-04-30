@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brent Crude Oil Price</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .tradingview-widget-container {
+            width: 100%;
+            height: 600px;
+            margin-bottom: 30px;
+        }
+        .fuel-prices {
+            margin-top: 30px;
+        }
+        .fuel-prices h2 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        select {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            background-color: white;
+            font-size: 14px;
+            min-width: 150px;
+        }
+        label {
+            font-weight: bold;
+            color: #333;
+        }
+        .chart-container {
+            width: 100%;
+            height: 500px;
+            margin-top: 20px;
+            position: relative;
+        }
+        .last-update {
+            text-align: right;
+            font-style: italic;
+            color: #666;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Brent Crude Oil Price</h1>
+        <div class="tradingview-widget-container">
+            <!-- TradingView Widget BEGIN -->
+            <div class="tradingview-widget-container">
+                <div id="tradingview_9a8b3"></div>
+                <div class="tradingview-widget-copyright">
+                    <a href="https://www.tradingview.com/" rel="noopener nofollow" target="_blank">
+                        <span class="blue-text">Track all markets on TradingView</span>
+                    </a>
+                </div>
+                <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+                <script type="text/javascript">
+                    new TradingView.widget({
+                        "width": "100%",
+                        "height": 600,
+                        "symbol": "FX_IDC:USDBRO",
+                        "interval": "D",
+                        "timezone": "Etc/UTC",
+                        "theme": "light",
+                        "style": "1",
+                        "locale": "en",
+                        "toolbar_bg": "#f1f3f6",
+                        "enable_publishing": false,
+                        "allow_symbol_change": true,
+                        "container_id": "tradingview_9a8b3"
+                    });
+                </script>
+            </div>
+            <!-- TradingView Widget END -->
+        </div>
+
+        <div class="fuel-prices">
+            <h2>French Fuel Prices</h2>
+            <div class="controls">
+                <div class="control-group">
+                    <label for="fuelType">Fuel Type:</label>
+                    <select id="fuelType">
+                        <option value="SP95-E10">SP95-E10</option>
+                        <option value="SP98">SP98</option>
+                        <option value="Gazole">Diesel</option>
+                        <option value="GPLc">GPL</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="timeframe">Timeframe:</label>
+                    <select id="timeframe">
+                        <option value="7">Last 7 days</option>
+                        <option value="30">Last 30 days</option>
+                        <option value="90">Last 90 days</option>
+                        <option value="180">Last 180 days</option>
+                        <option value="365">Last 365 days</option>
+                    </select>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="fuelChart"></canvas>
+                <div id="loading" class="loading">Loading data...</div>
+            </div>
+            <div class="last-update">
+                Last updated: <span id="last-update">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let fuelChart = null;
+        const apiUrl = 'https://www.prix-carburants.gouv.fr/rss/';
+
+        async function fetchFuelData(fuelType, days) {
+            try {
+                document.getElementById('loading').style.display = 'block';
+                
+                // Use our proxy server
+                const response = await fetch(`http://localhost:3000/api/fuel-prices`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                // Process the data
+                const processedData = {
+                    labels: [],
+                    prices: []
+                };
+                
+                // Get today's date
+                const today = new Date();
+                const startDate = new Date(today);
+                startDate.setDate(today.getDate() - days);
+                
+                // Process the stations data
+                if (data.pdv_liste && data.pdv_liste.pdv) {
+                    const pricesByDate = {};
+                    const stations = Array.isArray(data.pdv_liste.pdv) 
+                        ? data.pdv_liste.pdv 
+                        : [data.pdv_liste.pdv];
+                    
+                    stations.forEach(station => {
+                        if (station.prix) {
+                            const prices = Array.isArray(station.prix) ? station.prix : [station.prix];
+                            prices.forEach(price => {
+                                if (price.$ && price.$.nom === fuelType && price.$.maj) {
+                                    const date = new Date(price.$.maj);
+                                    if (date >= startDate) {
+                                        const dateStr = date.toLocaleDateString('fr-FR');
+                                        if (!pricesByDate[dateStr]) {
+                                            pricesByDate[dateStr] = [];
+                                        }
+                                        pricesByDate[dateStr].push(parseFloat(price.$.valeur));
+                                    }
+                                }
+                            });
+                        }
+                    });
+                    
+                    // Calculate average price for each date
+                    Object.keys(pricesByDate).sort().forEach(date => {
+                        const prices = pricesByDate[date];
+                        const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
+                        processedData.labels.push(date);
+                        processedData.prices.push(avgPrice.toFixed(3));
+                    });
+                }
+                
+                if (processedData.labels.length === 0) {
+                    throw new Error('No data available for the selected period');
+                }
+                
+                updateChart(processedData);
+                document.getElementById('loading').style.display = 'none';
+                
+                // Update the last update time
+                document.getElementById('last-update').textContent = new Date().toLocaleString('fr-FR', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (error) {
+                console.error('Error fetching fuel data:', error);
+                document.getElementById('loading').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        function generateMockData(days) {
+            const data = {
+                labels: [],
+                prices: []
+            };
+            
+            const basePrice = 1.85;
+            const today = new Date();
+            
+            for (let i = days; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                data.labels.push(date.toLocaleDateString('fr-FR'));
+                
+                // Generate some random variation around the base price
+                const variation = (Math.random() - 0.5) * 0.1;
+                data.prices.push((basePrice + variation).toFixed(3));
+            }
+            
+            return data;
+        }
+
+        function updateChart(data) {
+            const ctx = document.getElementById('fuelChart').getContext('2d');
+            
+            if (fuelChart) {
+                fuelChart.destroy();
+            }
+            
+            fuelChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Price (€/L)',
+                        data: data.prices,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Price (€/L)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateFuelChart() {
+            const fuelType = document.getElementById('fuelType').value;
+            const days = parseInt(document.getElementById('timeframe').value);
+            fetchFuelData(fuelType, days);
+        }
+
+        // Initialize the chart
+        updateFuelChart();
+
+        // Add event listeners for the dropdowns
+        document.getElementById('fuelType').addEventListener('change', updateFuelChart);
+        document.getElementById('timeframe').addEventListener('change', updateFuelChart);
+    </script>
+</body>
+</html> 
