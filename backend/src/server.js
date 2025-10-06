@@ -3,11 +3,10 @@ const cors = require('cors');
 const axios = require('axios');
 const AdmZip = require('adm-zip');
 const xml2js = require('xml2js');
-const path = require('path');
 const morgan = require('morgan');
 
 const app = express();
-const port = process.env.PORT || 4000;
+// Vercel serverless: no direct listen/port needed
 
 // Cache for fuel prices data
 let fuelPricesCache = {
@@ -20,8 +19,7 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
-// Serve static files from the frontend build directory (CRA builds to 'build')
-app.use(express.static(path.join(__dirname, '../../frontend/build')));
+// On Vercel, frontend is served by static build. Do not serve static files here.
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -161,7 +159,5 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
 });
 
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
-    console.log(`Health check available at http://localhost:${port}/health`);
-}); 
+// Export the Express app for Vercel serverless runtime
+module.exports = app;
