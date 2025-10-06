@@ -17,9 +17,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
-  Card,
-  CardContent
+  Chip
 } from '@mui/material';
 import { Line } from 'react-chartjs-2';
 import {
