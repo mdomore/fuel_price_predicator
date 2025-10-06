@@ -10,7 +10,16 @@ import {
   InputLabel,
   CircularProgress,
   Alert,
-  Grid
+  Grid,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  Card,
+  CardContent
 } from '@mui/material';
 import { Line } from 'react-chartjs-2';
 import {
@@ -36,6 +45,9 @@ ChartJS.register(
 );
 
 const API_URL = '/api/fuel-prices';
+const REGIONS_URL = '/api/regions';
+const DEPARTMENTS_URL = '/api/departments';
+const TOWNS_URL = '/api/towns';
 
 // Remove the unused debounce function and add trend calculation functions
 const calculateTrendLine = (dates, prices) => {
@@ -73,6 +85,15 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [rawData, setRawData] = useState(null);
+  
+  // Location state
+  const [selectedRegion, setSelectedRegion] = useState('');
+  const [selectedDepartment, setSelectedDepartment] = useState('');
+  const [selectedTown, setSelectedTown] = useState('');
+  const [regions, setRegions] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [towns, setTowns] = useState([]);
+  const [fuelStations, setFuelStations] = useState([]);
 
   const fuelTypes = useMemo(() => [
     { value: 'Gazole', label: 'Diesel' },
@@ -91,35 +112,45 @@ function App() {
   ], []);
 
   const processData = useCallback((rawApiData) => {
-    if (!rawApiData?.pdv_liste?.pdv) {
+    if (!rawApiData?.records) {
       setError('No data available');
       return;
     }
 
-    const stations = Array.isArray(rawApiData.pdv_liste.pdv) 
-      ? rawApiData.pdv_liste.pdv 
-      : [rawApiData.pdv_liste.pdv];
+    const stations = rawApiData.records.map(record => record.fields);
+    setFuelStations(stations);
 
+    // Filter stations by fuel type availability
+    const filteredStations = stations.filter(station => {
+      const availableFuels = station.carburants_disponibles || [];
+      return availableFuels.includes(fuelType);
+    });
+
+    if (filteredStations.length === 0) {
+      setError(`No stations found with ${fuelType} in the selected area`);
+      setData(null);
+      return;
+    }
+
+    // Group prices by date for trend analysis
     const pricesByDate = {};
     const today = new Date();
     const startDate = new Date(today);
     startDate.setDate(today.getDate() - timeframe);
 
-    stations.forEach(station => {
-      if (station.prix) {
-        const prices = Array.isArray(station.prix) ? station.prix : [station.prix];
-        prices.forEach(price => {
-          if (price.$ && price.$.nom === fuelType && price.$.maj) {
-            const date = new Date(price.$.maj);
-            if (date >= startDate) {
-              const dateStr = date.toLocaleDateString('fr-FR');
-              if (!pricesByDate[dateStr]) {
-                pricesByDate[dateStr] = [];
-              }
-              pricesByDate[dateStr].push(parseFloat(price.$.valeur));
-            }
+    filteredStations.forEach(station => {
+      const fuelPrice = station[`prix_${fuelType.toLowerCase()}`];
+      const lastUpdate = station[`prix_${fuelType.toLowerCase()}_maj`];
+      
+      if (fuelPrice && lastUpdate) {
+        const date = new Date(lastUpdate);
+        if (date >= startDate) {
+          const dateStr = date.toLocaleDateString('fr-FR');
+          if (!pricesByDate[dateStr]) {
+            pricesByDate[dateStr] = [];
           }
-        });
+          pricesByDate[dateStr].push(parseFloat(fuelPrice));
+        }
       }
     });
 
@@ -130,7 +161,7 @@ function App() {
     });
 
     if (sortedDates.length === 0) {
-      setError(`No prices found for ${fuelType} in the last ${timeframe} days`);
+      setError(`No recent prices found for ${fuelType} in the selected area`);
       setData(null);
       return;
     }
@@ -141,7 +172,7 @@ function App() {
       return avgPrice.toFixed(3);
     });
 
-    // Calculate trend line without future projection
+    // Calculate trend line
     const { currentTrend } = calculateTrendLine(sortedDates, prices);
 
     setData({
@@ -174,7 +205,12 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(API_URL);
+      const params = new URLSearchParams();
+      if (selectedRegion) params.append('region', selectedRegion);
+      if (selectedDepartment) params.append('departement', selectedDepartment);
+      if (selectedTown) params.append('ville', selectedTown);
+      
+      const response = await fetch(`${API_URL}?${params.toString()}`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -187,7 +223,59 @@ function App() {
     } finally {
       setLoading(false);
     }
-  }, [processData]);
+  }, [processData, selectedRegion, selectedDepartment, selectedTown]);
+
+  // Fetch regions
+  const fetchRegions = useCallback(async () => {
+    try {
+      const response = await fetch(REGIONS_URL);
+      if (response.ok) {
+        const data = await response.json();
+        setRegions(data);
+      }
+    } catch (err) {
+      console.error('Error fetching regions:', err);
+    }
+  }, []);
+
+  // Fetch departments for selected region
+  const fetchDepartments = useCallback(async (region) => {
+    if (!region) {
+      setDepartments([]);
+      setTowns([]);
+      return;
+    }
+    try {
+      const response = await fetch(`${DEPARTMENTS_URL}/${encodeURIComponent(region)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setDepartments(data);
+      }
+    } catch (err) {
+      console.error('Error fetching departments:', err);
+    }
+  }, []);
+
+  // Fetch towns for selected department
+  const fetchTowns = useCallback(async (department) => {
+    if (!department) {
+      setTowns([]);
+      return;
+    }
+    try {
+      const response = await fetch(`${TOWNS_URL}/${encodeURIComponent(department)}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTowns(data);
+      }
+    } catch (err) {
+      console.error('Error fetching towns:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRegions();
+  }, [fetchRegions]);
 
   useEffect(() => {
     fetchData();
@@ -199,12 +287,39 @@ function App() {
     }
   }, [fuelType, timeframe, rawData, processData]);
 
+  useEffect(() => {
+    if (selectedRegion) {
+      fetchDepartments(selectedRegion);
+      setSelectedDepartment('');
+      setSelectedTown('');
+    }
+  }, [selectedRegion, fetchDepartments]);
+
+  useEffect(() => {
+    if (selectedDepartment) {
+      fetchTowns(selectedDepartment);
+      setSelectedTown('');
+    }
+  }, [selectedDepartment, fetchTowns]);
+
   const handleFuelTypeChange = (event) => {
     setFuelType(event.target.value);
   };
 
   const handleTimeframeChange = (event) => {
     setTimeframe(event.target.value);
+  };
+
+  const handleRegionChange = (event) => {
+    setSelectedRegion(event.target.value);
+  };
+
+  const handleDepartmentChange = (event) => {
+    setSelectedDepartment(event.target.value);
+  };
+
+  const handleTownChange = (event) => {
+    setSelectedTown(event.target.value);
   };
 
   return (
@@ -215,6 +330,64 @@ function App() {
         </Typography>
 
         <Grid container spacing={4}>
+          {/* Location Selection */}
+          <Grid item xs={12}>
+            <Paper sx={{ p: 3 }}>
+              <Typography variant="h5" component="h2" gutterBottom align="center">
+                Select Location
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+                <FormControl sx={{ minWidth: 200 }}>
+                  <InputLabel>Region</InputLabel>
+                  <Select
+                    value={selectedRegion}
+                    label="Region"
+                    onChange={handleRegionChange}
+                  >
+                    <MenuItem value="">All Regions</MenuItem>
+                    {regions.map(region => (
+                      <MenuItem key={region} value={region}>
+                        {region}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <FormControl sx={{ minWidth: 200 }} disabled={!selectedRegion}>
+                  <InputLabel>Department</InputLabel>
+                  <Select
+                    value={selectedDepartment}
+                    label="Department"
+                    onChange={handleDepartmentChange}
+                  >
+                    <MenuItem value="">All Departments</MenuItem>
+                    {departments.map(dept => (
+                      <MenuItem key={dept} value={dept}>
+                        {dept}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <FormControl sx={{ minWidth: 200 }} disabled={!selectedDepartment}>
+                  <InputLabel>Town</InputLabel>
+                  <Select
+                    value={selectedTown}
+                    label="Town"
+                    onChange={handleTownChange}
+                  >
+                    <MenuItem value="">All Towns</MenuItem>
+                    {towns.map(town => (
+                      <MenuItem key={town} value={town}>
+                        {town}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Box>
+            </Paper>
+          </Grid>
+
           {/* Brent Crude Oil Price Widget */}
           <Grid item xs={12}>
             <Paper sx={{ p: 2 }}>
@@ -239,8 +412,8 @@ function App() {
               <Typography variant="h5" component="h2" gutterBottom align="center">
                 French Fuel Prices with Trend Prediction
               </Typography>
-              <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-                <FormControl fullWidth>
+              <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+                <FormControl sx={{ minWidth: 200 }}>
                   <InputLabel>Fuel Type</InputLabel>
                   <Select
                     value={fuelType}
@@ -255,7 +428,7 @@ function App() {
                   </Select>
                 </FormControl>
 
-                <FormControl fullWidth>
+                <FormControl sx={{ minWidth: 200 }}>
                   <InputLabel>Timeframe</InputLabel>
                   <Select
                     value={timeframe}
@@ -328,6 +501,74 @@ function App() {
               ) : null}
             </Paper>
           </Grid>
+
+          {/* Fuel Stations Table */}
+          {fuelStations.length > 0 && (
+            <Grid item xs={12}>
+              <Paper sx={{ p: 3 }}>
+                <Typography variant="h5" component="h2" gutterBottom align="center">
+                  Fuel Stations in Selected Area
+                </Typography>
+                <TableContainer sx={{ maxHeight: 600 }}>
+                  <Table stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Station Name</TableCell>
+                        <TableCell>Address</TableCell>
+                        <TableCell>City</TableCell>
+                        <TableCell>Department</TableCell>
+                        <TableCell>Region</TableCell>
+                        <TableCell>Available Fuels</TableCell>
+                        <TableCell>Diesel Price</TableCell>
+                        <TableCell>SP95 Price</TableCell>
+                        <TableCell>SP98 Price</TableCell>
+                        <TableCell>E10 Price</TableCell>
+                        <TableCell>Last Update</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {fuelStations.slice(0, 100).map((station, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{station.nom || 'N/A'}</TableCell>
+                          <TableCell>{station.adresse || 'N/A'}</TableCell>
+                          <TableCell>{station.ville || 'N/A'}</TableCell>
+                          <TableCell>{station.departement || 'N/A'}</TableCell>
+                          <TableCell>{station.region || 'N/A'}</TableCell>
+                          <TableCell>
+                            <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                              {(station.carburants_disponibles || []).map((fuel, idx) => (
+                                <Chip key={idx} label={fuel} size="small" color="primary" />
+                              ))}
+                            </Box>
+                          </TableCell>
+                          <TableCell>
+                            {station.prix_gazole ? `${station.prix_gazole}€` : 'N/A'}
+                          </TableCell>
+                          <TableCell>
+                            {station.prix_sp95 ? `${station.prix_sp95}€` : 'N/A'}
+                          </TableCell>
+                          <TableCell>
+                            {station.prix_sp98 ? `${station.prix_sp98}€` : 'N/A'}
+                          </TableCell>
+                          <TableCell>
+                            {station.prix_e10 ? `${station.prix_e10}€` : 'N/A'}
+                          </TableCell>
+                          <TableCell>
+                            {station.prix_maj ? new Date(station.prix_maj).toLocaleString('fr-FR') : 'N/A'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                {fuelStations.length > 100 && (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
+                    Showing first 100 stations out of {fuelStations.length} total
+                  </Typography>
+                )}
+              </Paper>
+            </Grid>
+          )}
         </Grid>
       </Box>
     </Container>
