@@ -115,7 +115,14 @@ function App() {
       return;
     }
 
-    const stations = rawApiData.records.map(record => record.fields);
+    const stations = rawApiData.records.map(record => {
+      const fields = record.fields;
+      // Convert carburants_disponibles string to array if needed
+      if (fields.carburants_disponibles && typeof fields.carburants_disponibles === 'string') {
+        fields.carburants_disponibles = fields.carburants_disponibles.split(',').map(f => f.trim());
+      }
+      return fields;
+    });
     setFuelStations(stations);
 
     // Filter stations by fuel type availability
