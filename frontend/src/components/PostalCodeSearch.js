@@ -197,19 +197,19 @@ const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUs
   };
 
   return (
-    <Paper sx={{ p: 3 }}>
-      <Typography variant="h5" gutterBottom>
+    <Paper sx={{ p: { xs: 2, sm: 3 } }}>
+      <Typography variant="h5" gutterBottom sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
         Find Nearby Stations
       </Typography>
 
-      <Box sx={{ display: 'flex', gap: 2, mb: 2, alignItems: 'flex-start' }}>
+      <Box sx={{ display: 'flex', gap: 2, mb: 2, flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'flex-start' } }}>
         <TextField
           label="Postal Code"
           value={postalCode}
           onChange={(e) => setPostalCode(e.target.value)}
           placeholder="75001"
           inputProps={{ maxLength: 5, pattern: '[0-9]*' }}
-          sx={{ width: 200 }}
+          sx={{ width: { xs: '100%', sm: 200 } }}
           onKeyPress={(e) => {
             if (e.key === 'Enter') handleSearch();
           }}
@@ -218,6 +218,8 @@ const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUs
           variant="contained"
           startIcon={<SearchIcon />}
           onClick={handleSearch}
+          fullWidth
+          sx={{ display: { xs: 'flex', sm: 'inline-flex' } }}
         >
           Search
         </Button>
@@ -225,6 +227,8 @@ const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUs
           variant="outlined"
           startIcon={<MyLocationIcon />}
           onClick={handleUseMyLocation}
+          fullWidth
+          sx={{ display: { xs: 'flex', sm: 'inline-flex' } }}
         >
           Use My Location
         </Button>

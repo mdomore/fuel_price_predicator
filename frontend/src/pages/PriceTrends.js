@@ -197,23 +197,23 @@ const PriceTrends = () => {
 
   return (
     <Container maxWidth="xl">
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom align="center">
+      <Box sx={{ my: { xs: 2, md: 4 } }}>
+        <Typography variant="h4" component="h1" gutterBottom align="center" sx={{ fontSize: { xs: '1.5rem', md: '2.125rem' } }}>
           Fuel Price Trends
         </Typography>
 
-        <Grid container spacing={4}>
+        <Grid container spacing={{ xs: 2, md: 4 }}>
           {/* Brent Crude Oil Price Widget */}
           <Grid item xs={12}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h5" component="h2" gutterBottom align="center">
+            <Paper sx={{ p: { xs: 1, sm: 2 } }}>
+              <Typography variant="h5" component="h2" gutterBottom align="center" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                 Brent Crude Oil Price
               </Typography>
               <Box sx={{ 
-                height: '550px', 
+                height: { xs: '350px', sm: '450px', md: '550px' }, 
                 width: '100%',
                 '& .tradingview-widget-container': {
-                  height: '550px !important'
+                  height: '100% !important'
                 }
               }}>
                 <TradingViewWidget />
@@ -223,12 +223,12 @@ const PriceTrends = () => {
 
           {/* French Fuel Prices Chart */}
           <Grid item xs={12}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h5" component="h2" gutterBottom align="center">
+            <Paper sx={{ p: { xs: 2, sm: 3 } }}>
+              <Typography variant="h5" component="h2" gutterBottom align="center" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                 French Fuel Prices with Trend Prediction
               </Typography>
-              <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap', justifyContent: 'center' }}>
-                <FormControl sx={{ minWidth: 200 }}>
+              <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap', justifyContent: 'center', flexDirection: { xs: 'column', sm: 'row' } }}>
+                <FormControl sx={{ minWidth: { xs: '100%', sm: 200 } }}>
                   <InputLabel>Fuel Type</InputLabel>
                   <Select
                     value={fuelType}
@@ -243,7 +243,7 @@ const PriceTrends = () => {
                   </Select>
                 </FormControl>
 
-                <FormControl sx={{ minWidth: 200 }}>
+                <FormControl sx={{ minWidth: { xs: '100%', sm: 200 } }}>
                   <InputLabel>Timeframe</InputLabel>
                   <Select
                     value={timeframe}
@@ -270,7 +270,7 @@ const PriceTrends = () => {
                   <CircularProgress />
                 </Box>
               ) : data ? (
-                <Box sx={{ height: 500 }}>
+                <Box sx={{ height: { xs: 300, sm: 400, md: 500 } }}>
                   <Line
                     data={data}
                     options={{

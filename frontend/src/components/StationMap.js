@@ -75,7 +75,7 @@ const StationMap = ({ stations, selectedFuelType, onStationClick, mapCenter, use
   };
 
   return (
-    <Box sx={{ height: '600px', width: '100%', position: 'relative' }}>
+    <Box sx={{ height: { xs: '400px', sm: '500px', md: '600px' }, width: '100%', position: 'relative' }}>
       <MapContainer
         center={center}
         zoom={zoom}

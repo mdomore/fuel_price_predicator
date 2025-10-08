@@ -90,14 +90,14 @@ const StationFinder = () => {
 
   return (
     <Container maxWidth="xl">
-      <Box sx={{ my: 4 }}>
-        <Typography variant="h4" component="h1" gutterBottom align="center">
+      <Box sx={{ my: { xs: 2, md: 4 } }}>
+        <Typography variant="h4" component="h1" gutterBottom align="center" sx={{ fontSize: { xs: '1.5rem', md: '2.125rem' } }}>
           Find Fuel Stations
         </Typography>
 
         {/* Fuel Type Selector */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
-          <FormControl sx={{ minWidth: 250 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3, px: { xs: 2, sm: 0 } }}>
+          <FormControl sx={{ minWidth: { xs: '100%', sm: 250 } }}>
             <InputLabel>Fuel Type</InputLabel>
             <Select
               value={fuelType}
@@ -138,8 +138,8 @@ const StationFinder = () => {
 
             {/* Interactive Map */}
             <Grid item xs={12} md={7}>
-              <Paper sx={{ p: 2 }}>
-                <Typography variant="h5" component="h2" gutterBottom align="center">
+              <Paper sx={{ p: { xs: 1, sm: 2 } }}>
+                <Typography variant="h5" component="h2" gutterBottom align="center" sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                   Station Map
                 </Typography>
                 <StationMap

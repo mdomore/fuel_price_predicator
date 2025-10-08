@@ -40,32 +40,38 @@ function NavigationBar() {
   return (
     <AppBar position="static">
       <Toolbar>
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+        <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
           Fuel Price Predictor
         </Typography>
         <Button
           color="inherit"
           component={Link}
           to="/"
-          startIcon={<SearchIcon />}
+          startIcon={<SearchIcon sx={{ display: { xs: 'none', sm: 'inline' } }} />}
           sx={{ 
             borderBottom: location.pathname === '/' ? '2px solid white' : 'none',
-            borderRadius: 0
+            borderRadius: 0,
+            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+            minWidth: { xs: 'auto', sm: 'auto' },
+            px: { xs: 1, sm: 2 }
           }}
         >
-          Find Stations
+          <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Find </Box>Stations
         </Button>
         <Button
           color="inherit"
           component={Link}
           to="/trends"
-          startIcon={<TrendingUpIcon />}
+          startIcon={<TrendingUpIcon sx={{ display: { xs: 'none', sm: 'inline' } }} />}
           sx={{ 
             borderBottom: location.pathname === '/trends' ? '2px solid white' : 'none',
-            borderRadius: 0
+            borderRadius: 0,
+            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+            minWidth: { xs: 'auto', sm: 'auto' },
+            px: { xs: 1, sm: 2 }
           }}
         >
-          Price Trends
+          Trends
         </Button>
       </Toolbar>
     </AppBar>
