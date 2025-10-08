@@ -125,10 +125,11 @@ function App() {
     });
     setFuelStations(stations);
 
-    // Filter stations by fuel type availability
+    // Filter stations by fuel type availability - check if price exists for this fuel type
+    const fuelPriceField = `prix_${fuelType.toLowerCase()}`;
     const filteredStations = stations.filter(station => {
-      const availableFuels = station.carburants_disponibles || [];
-      return availableFuels.includes(fuelType);
+      // Check if station has this fuel type's price
+      return station[fuelPriceField] != null && station[fuelPriceField] !== '';
     });
 
     if (filteredStations.length === 0) {
@@ -145,10 +146,11 @@ function App() {
 
     filteredStations.forEach(station => {
       const fuelPrice = station[`prix_${fuelType.toLowerCase()}`];
-      const lastUpdate = station[`prix_${fuelType.toLowerCase()}_maj`];
+      const lastUpdate = station[`prix_${fuelType.toLowerCase()}_maj`] || station.prix_maj;
       
-      if (fuelPrice && lastUpdate) {
-        const date = new Date(lastUpdate);
+      if (fuelPrice) {
+        // Use last update date if available, otherwise use current date
+        const date = lastUpdate ? new Date(lastUpdate) : new Date();
         if (date >= startDate) {
           const dateStr = date.toLocaleDateString('fr-FR');
           if (!pricesByDate[dateStr]) {
