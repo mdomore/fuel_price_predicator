@@ -10,13 +10,17 @@ import {
   ListItemText,
   Divider,
   Chip,
-  ListItemButton
+  ListItemButton,
+  IconButton,
+  Tooltip
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
+import DirectionsIcon from '@mui/icons-material/Directions';
 import { sortByDistance, parseCoordinates } from '../utils/distance';
 import { enrichStationsWithBrands } from '../utils/overpass';
+import { navigateToStation, getStationAddress } from '../utils/navigation';
 
 const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUseMyLocation, onStationClick }) => {
   const [postalCode, setPostalCode] = useState('');
@@ -241,6 +245,15 @@ const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUs
     }
   };
 
+  const handleNavigate = (event, station) => {
+    event.stopPropagation(); // Prevent list item click
+    const coords = parseCoordinates(station);
+    if (coords) {
+      const label = getStationAddress(station);
+      navigateToStation(coords.lat, coords.lon, label);
+    }
+  };
+
   return (
     <Paper sx={{ p: { xs: 2, sm: 3 } }}>
       <Typography variant="h5" gutterBottom sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
@@ -308,7 +321,8 @@ const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUs
                     sx={{
                       '&:hover': {
                         bgcolor: 'action.hover',
-                      }
+                      },
+                      pr: 1
                     }}
                   >
                     <LocationOnIcon sx={{ mr: 1, mt: 0.5, color: 'primary.main' }} />
@@ -348,6 +362,16 @@ const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUs
                         </>
                       }
                     />
+                    <Tooltip title="Navigate">
+                      <IconButton
+                        edge="end"
+                        color="primary"
+                        onClick={(e) => handleNavigate(e, station)}
+                        sx={{ ml: 1 }}
+                      >
+                        <DirectionsIcon />
+                      </IconButton>
+                    </Tooltip>
                   </ListItemButton>
                   {index < searchResults.length - 1 && <Divider />}
                 </React.Fragment>

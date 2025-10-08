@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
-import { Box, Typography, Chip } from '@mui/material';
+import { Box, Typography, Chip, Button } from '@mui/material';
+import DirectionsIcon from '@mui/icons-material/Directions';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { parseCoordinates } from '../utils/distance';
+import { navigateToStation, getStationAddress } from '../utils/navigation';
 
 // Fix Leaflet default marker icon issue with webpack
 delete L.Icon.Default.prototype._getIconUrl;
@@ -89,6 +91,14 @@ const StationMap = ({ stations, selectedFuelType, onStationClick, mapCenter, use
   const handleMarkerClick = (station) => {
     if (onStationClick) {
       onStationClick(station);
+    }
+  };
+
+  const handleNavigate = (station) => {
+    const coords = parseCoordinates(station);
+    if (coords) {
+      const label = getStationAddress(station);
+      navigateToStation(coords.lat, coords.lon, label);
     }
   };
 
@@ -182,6 +192,17 @@ const StationMap = ({ stations, selectedFuelType, onStationClick, mapCenter, use
                       </Typography>
                     </Box>
                   )}
+                  
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<DirectionsIcon />}
+                    onClick={() => handleNavigate(station)}
+                    fullWidth
+                    sx={{ mt: 1 }}
+                  >
+                    Navigate
+                  </Button>
                 </Box>
               </Popup>
             </Marker>
