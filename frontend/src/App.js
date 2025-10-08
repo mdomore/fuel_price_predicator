@@ -31,6 +31,9 @@ import {
   Legend
 } from 'chart.js';
 import TradingViewWidget from './components/TradingViewWidget';
+import StationMap from './components/StationMap';
+import PostalCodeSearch from './components/PostalCodeSearch';
+import 'leaflet/dist/leaflet.css';
 
 ChartJS.register(
   CategoryScale,
@@ -92,6 +95,11 @@ function App() {
   const [departments, setDepartments] = useState([]);
   const [towns, setTowns] = useState([]);
   const [fuelStations, setFuelStations] = useState([]);
+  
+  // Map and search state
+  const [mapCenter, setMapCenter] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
+  const [nearbyStations, setNearbyStations] = useState([]);
 
   const fuelTypes = useMemo(() => [
     { value: 'Gazole', label: 'Diesel' },
@@ -335,6 +343,22 @@ function App() {
     setSelectedTown(event.target.value);
   };
 
+  const handleLocationFound = (location) => {
+    setMapCenter([location.lat, location.lon]);
+    setUserLocation(null);
+    setNearbyStations(location.stations || []);
+  };
+
+  const handleUseMyLocation = (location) => {
+    setUserLocation([location.lat, location.lon]);
+    setMapCenter([location.lat, location.lon]);
+    setNearbyStations(location.stations || []);
+  };
+
+  const handleStationClick = (station) => {
+    console.log('Station clicked:', station);
+  };
+
   return (
     <Container maxWidth="xl">
       <Box sx={{ my: 4 }}>
@@ -396,6 +420,11 @@ function App() {
                       </MenuItem>
                     ))}
                   </Select>
+                  {selectedDepartment && towns.length > 0 && (
+                    <Typography variant="caption" sx={{ mt: 0.5, color: 'text.secondary' }}>
+                      Showing {towns.length} towns with fuel stations
+                    </Typography>
+                  )}
                 </FormControl>
               </Box>
             </Paper>
@@ -416,6 +445,32 @@ function App() {
               }}>
                 <TradingViewWidget />
               </Box>
+            </Paper>
+          </Grid>
+
+          {/* Postal Code Search & Nearby Stations */}
+          <Grid item xs={12} md={6}>
+            <PostalCodeSearch
+              allStations={fuelStations}
+              selectedFuelType={fuelType}
+              onLocationFound={handleLocationFound}
+              onUseMyLocation={handleUseMyLocation}
+            />
+          </Grid>
+
+          {/* Interactive Map */}
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ p: 2 }}>
+              <Typography variant="h5" component="h2" gutterBottom align="center">
+                Station Map
+              </Typography>
+              <StationMap
+                stations={nearbyStations.length > 0 ? nearbyStations : fuelStations}
+                selectedFuelType={fuelType}
+                onStationClick={handleStationClick}
+                mapCenter={mapCenter}
+                userLocation={userLocation}
+              />
             </Paper>
           </Grid>
 

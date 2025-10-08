@@ -1,0 +1,150 @@
+import React, { useEffect, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { Box, Typography, Chip } from '@mui/material';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+import { parseCoordinates } from '../utils/distance';
+
+// Fix Leaflet default marker icon issue with webpack
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
+  iconUrl: require('leaflet/dist/images/marker-icon.png'),
+  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+});
+
+// Component to handle map centering
+function MapUpdater({ center, zoom }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (center) {
+      map.setView(center, zoom || 13);
+    }
+  }, [center, zoom, map]);
+  
+  return null;
+}
+
+const StationMap = ({ stations, selectedFuelType, onStationClick, mapCenter, userLocation }) => {
+  const [center, setCenter] = useState([46.603354, 1.888334]); // Center of France
+  const [zoom, setZoom] = useState(6);
+
+  useEffect(() => {
+    if (mapCenter) {
+      setCenter(mapCenter);
+      setZoom(13);
+    } else if (userLocation) {
+      setCenter(userLocation);
+      setZoom(12);
+    } else if (stations.length > 0) {
+      // Center on first station with coordinates
+      const firstStation = stations.find(s => parseCoordinates(s));
+      if (firstStation) {
+        const coords = parseCoordinates(firstStation);
+        setCenter([coords.lat, coords.lon]);
+        setZoom(10);
+      }
+    }
+  }, [mapCenter, userLocation, stations]);
+
+  const handleMarkerClick = (station) => {
+    if (onStationClick) {
+      onStationClick(station);
+    }
+  };
+
+  return (
+    <Box sx={{ height: '600px', width: '100%', position: 'relative' }}>
+      <MapContainer
+        center={center}
+        zoom={zoom}
+        style={{ height: '100%', width: '100%' }}
+        scrollWheelZoom={true}
+      >
+        <MapUpdater center={center} zoom={zoom} />
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        
+        {stations.map((station, index) => {
+          const coords = parseCoordinates(station);
+          if (!coords) return null;
+
+          const fuelPrice = station[`${selectedFuelType?.toLowerCase()}_prix`];
+          
+          return (
+            <Marker
+              key={index}
+              position={[coords.lat, coords.lon]}
+              eventHandlers={{
+                click: () => handleMarkerClick(station),
+              }}
+            >
+              <Popup>
+                <Box sx={{ minWidth: 200 }}>
+                  <Typography variant="subtitle1" fontWeight="bold">
+                    {station.nom || station.adresse}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {station.adresse}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {station.ville} - {station.cp}
+                  </Typography>
+                  
+                  {fuelPrice && (
+                    <Box sx={{ mt: 1 }}>
+                      <Chip 
+                        label={`${selectedFuelType}: ${fuelPrice}€`} 
+                        color="primary" 
+                        size="small"
+                      />
+                    </Box>
+                  )}
+                  
+                  {station.distance !== undefined && (
+                    <Typography variant="caption" display="block" sx={{ mt: 1 }}>
+                      Distance: {station.distance.toFixed(2)} km
+                    </Typography>
+                  )}
+                  
+                  {station.carburants_disponibles && (
+                    <Box sx={{ mt: 1 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        Available: {Array.isArray(station.carburants_disponibles) 
+                          ? station.carburants_disponibles.join(', ')
+                          : station.carburants_disponibles}
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              </Popup>
+            </Marker>
+          );
+        })}
+        
+        {userLocation && (
+          <Marker 
+            position={userLocation}
+            icon={L.icon({
+              iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+              shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+              iconSize: [25, 41],
+              iconAnchor: [12, 41],
+              popupAnchor: [1, -34],
+              shadowSize: [41, 41]
+            })}
+          >
+            <Popup>
+              <Typography variant="body2">Your Location</Typography>
+            </Popup>
+          </Marker>
+        )}
+      </MapContainer>
+    </Box>
+  );
+};
+
+export default StationMap;
