@@ -20,49 +20,88 @@ const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUs
   const [searchResults, setSearchResults] = useState([]);
   const [error, setError] = useState('');
 
-  const handleSearch = () => {
-    setError('');
+  const handleSearch = async () => {
+    setError('Searching...');
     
     if (!postalCode || postalCode.length !== 5) {
       setError('Please enter a valid 5-digit postal code');
       return;
     }
 
-    // Filter stations by postal code
-    const matchingStations = allStations.filter(
-      station => station.cp === postalCode
-    );
+    try {
+      // First, try to find stations in this postal code
+      const matchingStations = allStations.filter(
+        station => station.cp === postalCode
+      );
 
-    if (matchingStations.length === 0) {
-      setError(`No stations found for postal code ${postalCode}`);
+      let centerLat, centerLon;
+
+      if (matchingStations.length > 0) {
+        // Use first station's coordinates as center
+        const stationsWithCoords = matchingStations.filter(s => parseCoordinates(s));
+        if (stationsWithCoords.length > 0) {
+          const coords = parseCoordinates(stationsWithCoords[0]);
+          centerLat = coords.lat;
+          centerLon = coords.lon;
+        }
+      }
+
+      // If no stations in this postal code, geocode it using French government API
+      if (!centerLat) {
+        const response = await fetch(
+          `https://geo.api.gouv.fr/communes?codePostal=${postalCode}&fields=centre&format=json&geometry=centre`
+        );
+        
+        if (!response.ok) {
+          throw new Error('Failed to geocode postal code');
+        }
+
+        const communes = await response.json();
+        
+        if (!communes || communes.length === 0) {
+          setError(`Postal code ${postalCode} not found`);
+          setSearchResults([]);
+          return;
+        }
+
+        // Use first commune's center coordinates
+        centerLat = communes[0].centre.coordinates[1];
+        centerLon = communes[0].centre.coordinates[0];
+      }
+
+      setError('');
+      
+      // Sort all stations by distance from postal code center
+      let sorted = sortByDistance(allStations, centerLat, centerLon);
+      
+      // Filter by fuel type and sort by price
+      const fuelPriceField = `${selectedFuelType?.toLowerCase()}_prix`;
+      sorted = sorted
+        .filter(s => s[fuelPriceField] != null && s[fuelPriceField] !== '')
+        .sort((a, b) => {
+          // First by price (ascending)
+          const priceDiff = (a[fuelPriceField] || 999) - (b[fuelPriceField] || 999);
+          if (Math.abs(priceDiff) > 0.001) return priceDiff;
+          // Then by distance
+          return a.distance - b.distance;
+        });
+      
+      // Take closest 10 stations
+      const nearest = sorted.slice(0, 10);
+      setSearchResults(nearest);
+
+      // Notify parent component about the location
+      if (onLocationFound) {
+        onLocationFound({
+          lat: centerLat,
+          lon: centerLon,
+          postalCode,
+          stations: nearest
+        });
+      }
+    } catch (err) {
+      setError(`Error: ${err.message}`);
       setSearchResults([]);
-      return;
-    }
-
-    // Get center coordinates from matching stations
-    const stationsWithCoords = matchingStations.filter(s => parseCoordinates(s));
-    if (stationsWithCoords.length === 0) {
-      setError('No location data available for stations in this postal code');
-      return;
-    }
-
-    const firstCoords = parseCoordinates(stationsWithCoords[0]);
-    
-    // Sort all stations by distance from this postal code's center
-    const sorted = sortByDistance(allStations, firstCoords.lat, firstCoords.lon);
-    
-    // Take closest 10 stations
-    const nearest = sorted.slice(0, 10);
-    setSearchResults(nearest);
-
-    // Notify parent component about the location
-    if (onLocationFound) {
-      onLocationFound({
-        lat: firstCoords.lat,
-        lon: firstCoords.lon,
-        postalCode,
-        stations: nearest
-      });
     }
   };
 
@@ -79,8 +118,21 @@ const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUs
         const { latitude, longitude } = position.coords;
         setError('');
         
-        // Sort stations by distance from user location
-        const sorted = sortByDistance(allStations, latitude, longitude);
+        // Sort stations by distance from user location, then by price
+        let sorted = sortByDistance(allStations, latitude, longitude);
+        
+        // Filter by fuel type and sort by price
+        const fuelPriceField = `${selectedFuelType?.toLowerCase()}_prix`;
+        sorted = sorted
+          .filter(s => s[fuelPriceField] != null && s[fuelPriceField] !== '')
+          .sort((a, b) => {
+            // First by price (ascending)
+            const priceDiff = (a[fuelPriceField] || 999) - (b[fuelPriceField] || 999);
+            if (Math.abs(priceDiff) > 0.001) return priceDiff;
+            // Then by distance
+            return a.distance - b.distance;
+          });
+        
         const nearest = sorted.slice(0, 10);
         setSearchResults(nearest);
 
