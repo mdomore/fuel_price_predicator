@@ -322,56 +322,57 @@ const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUs
                       '&:hover': {
                         bgcolor: 'action.hover',
                       },
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      position: 'relative',
                       pr: 1
                     }}
                   >
                     <LocationOnIcon sx={{ mr: 1, mt: 0.5, color: 'primary.main' }} />
-                    <ListItemText
-                      primary={
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
-                          <Box>
-                            {station.brand && (
-                              <Typography variant="caption" color="primary" sx={{ fontWeight: 'bold', display: 'block' }}>
-                                {station.brand}
-                              </Typography>
-                            )}
-                            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                              {station.ville} - {station.adresse}
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          {station.brand && (
+                            <Typography variant="caption" color="primary" sx={{ fontWeight: 'bold', display: 'block' }}>
+                              {station.brand}
                             </Typography>
-                          </Box>
-                          {fuelPrice && (
-                            <Chip
-                              label={`${fuelPrice}€`}
-                              color="primary"
-                              size="small"
-                            />
                           )}
+                          <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                            {station.ville} - {station.adresse}
+                          </Typography>
                         </Box>
-                      }
-                      secondary={
-                        <>
+                        {fuelPrice && (
+                          <Chip
+                            label={`${fuelPrice}€`}
+                            color="primary"
+                            size="small"
+                          />
+                        )}
+                      </Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+                        <Box>
                           <Typography variant="body2" color="text.secondary">
                             {station.cp} {station.ville}
                             {station.pop && ` • ${station.pop === 'R' ? 'Route' : 'Autoroute'}`}
                           </Typography>
                           {station.distance !== undefined && (
                             <Typography variant="caption" color="primary" fontWeight="bold">
-                              {station.distance.toFixed(2)} km away • Click to view on map
+                              {station.distance.toFixed(2)} km away
                             </Typography>
                           )}
-                        </>
-                      }
-                    />
-                    <Tooltip title="Navigate">
-                      <IconButton
-                        edge="end"
-                        color="primary"
-                        onClick={(e) => handleNavigate(e, station)}
-                        sx={{ ml: 1 }}
-                      >
-                        <DirectionsIcon />
-                      </IconButton>
-                    </Tooltip>
+                        </Box>
+                        <Tooltip title="Navigate">
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={(e) => handleNavigate(e, station)}
+                            sx={{ ml: 1 }}
+                          >
+                            <DirectionsIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </Box>
                   </ListItemButton>
                   {index < searchResults.length - 1 && <Divider />}
                 </React.Fragment>
