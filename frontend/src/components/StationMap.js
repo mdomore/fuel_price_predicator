@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { Box, Typography, Chip } from '@mui/material';
 import 'leaflet/dist/leaflet.css';
@@ -11,6 +11,26 @@ L.Icon.Default.mergeOptions({
   iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
   iconUrl: require('leaflet/dist/images/marker-icon.png'),
   shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+});
+
+// Create icon instances once (not on every render)
+const defaultIcon = new L.Icon.Default();
+const selectedIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+const userLocationIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
 });
 
 // Component to handle map centering
@@ -77,19 +97,15 @@ const StationMap = ({ stations, selectedFuelType, onStationClick, mapCenter, use
             station.adresse === selectedStation.adresse && 
             station.cp === selectedStation.cp;
           
-          // Custom icon for selected station
-          const markerIcon = isSelected ? L.icon({
-            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-            iconSize: [25, 41],
-            iconAnchor: [12, 41],
-            popupAnchor: [1, -34],
-            shadowSize: [41, 41]
-          }) : undefined;
+          // Use pre-created icon instances
+          const markerIcon = isSelected ? selectedIcon : defaultIcon;
+          
+          // Create unique key using station info
+          const markerKey = `${station.cp}-${station.adresse}-${index}`;
           
           return (
             <Marker
-              key={index}
+              key={markerKey}
               position={[coords.lat, coords.lon]}
               icon={markerIcon}
               eventHandlers={{
@@ -141,15 +157,9 @@ const StationMap = ({ stations, selectedFuelType, onStationClick, mapCenter, use
         
         {userLocation && (
           <Marker 
+            key="user-location"
             position={userLocation}
-            icon={L.icon({
-              iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
-              shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
-              iconSize: [25, 41],
-              iconAnchor: [12, 41],
-              popupAnchor: [1, -34],
-              shadowSize: [41, 41]
-            })}
+            icon={userLocationIcon}
           >
             <Popup>
               <Typography variant="body2">Your Location</Typography>
