@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 import { Box, Typography, Chip } from '@mui/material';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -50,6 +51,23 @@ const StationMap = ({ stations, selectedFuelType, onStationClick, mapCenter, use
   const [center, setCenter] = useState([46.603354, 1.888334]); // Center of France
   const [zoom, setZoom] = useState(6);
 
+  // Limit stations to show on map (performance optimization)
+  const displayStations = useMemo(() => {
+    // If user searched, show those results
+    if (mapCenter && stations.length <= 100) {
+      return stations;
+    }
+    
+    // If no search, limit to 200 closest to current center or random sample
+    if (stations.length > 200) {
+      // Take a sample when viewing all of France
+      const step = Math.ceil(stations.length / 200);
+      return stations.filter((_, index) => index % step === 0);
+    }
+    
+    return stations;
+  }, [stations, mapCenter]);
+
   useEffect(() => {
     if (mapCenter) {
       setCenter(mapCenter);
@@ -57,8 +75,8 @@ const StationMap = ({ stations, selectedFuelType, onStationClick, mapCenter, use
     } else if (userLocation) {
       setCenter(userLocation);
       setZoom(12);
-    } else if (stations.length > 0) {
-      // Center on first station with coordinates
+    } else if (stations.length > 0 && stations.length <= 100) {
+      // Only auto-center for search results
       const firstStation = stations.find(s => parseCoordinates(s));
       if (firstStation) {
         const coords = parseCoordinates(firstStation);
@@ -88,7 +106,14 @@ const StationMap = ({ stations, selectedFuelType, onStationClick, mapCenter, use
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
-        {stations.map((station, index) => {
+        <MarkerClusterGroup
+          chunkedLoading
+          maxClusterRadius={50}
+          spiderfyOnMaxZoom={true}
+          showCoverageOnHover={false}
+          zoomToBoundsOnClick={true}
+        >
+        {displayStations.map((station, index) => {
           const coords = parseCoordinates(station);
           if (!coords) return null;
 
@@ -162,6 +187,7 @@ const StationMap = ({ stations, selectedFuelType, onStationClick, mapCenter, use
             </Marker>
           );
         })}
+        </MarkerClusterGroup>
         
         {userLocation && (
           <Marker 
