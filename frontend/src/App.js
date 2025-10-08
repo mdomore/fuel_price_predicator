@@ -111,9 +111,11 @@ function App() {
 
   const processData = useCallback((rawApiData) => {
     if (!rawApiData?.records) {
-      setError('No data available');
+      setError('No data available from API');
       return;
     }
+
+    console.log('API returned', rawApiData.records.length, 'records');
 
     const stations = rawApiData.records.map(record => {
       const fields = record.fields;
@@ -132,8 +134,18 @@ function App() {
       return station[fuelPriceField] != null && station[fuelPriceField] !== '';
     });
 
+    console.log(`Filtered ${filteredStations.length} stations with ${fuelType} (field: ${fuelPriceField})`);
+    
+    // Debug: show sample station fields if no stations found
+    if (filteredStations.length === 0 && stations.length > 0) {
+      console.log('Sample station fields:', Object.keys(stations[0]));
+      setError(`No stations found with ${fuelType}. API returned ${stations.length} stations but none have ${fuelPriceField} field.`);
+      setData(null);
+      return;
+    }
+
     if (filteredStations.length === 0) {
-      setError(`No stations found with ${fuelType} in the selected area`);
+      setError(`No data available for ${fuelType}`);
       setData(null);
       return;
     }
