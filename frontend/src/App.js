@@ -127,8 +127,10 @@ function App() {
     });
     setFuelStations(stations);
 
-    // Filter stations by fuel type availability - check if price exists for this fuel type
-    const fuelPriceField = `prix_${fuelType.toLowerCase()}`;
+    // Filter stations by fuel type availability - correct field names: {fuel}_prix not prix_{fuel}
+    const fuelPriceField = `${fuelType.toLowerCase()}_prix`;
+    const fuelDateField = `${fuelType.toLowerCase()}_maj`;
+    
     const filteredStations = stations.filter(station => {
       // Check if station has this fuel type's price
       return station[fuelPriceField] != null && station[fuelPriceField] !== '';
@@ -136,16 +138,8 @@ function App() {
 
     console.log(`Filtered ${filteredStations.length} stations with ${fuelType} (field: ${fuelPriceField})`);
     
-    // Debug: show sample station fields if no stations found
-    if (filteredStations.length === 0 && stations.length > 0) {
-      console.log('Sample station fields:', Object.keys(stations[0]));
-      setError(`No stations found with ${fuelType}. API returned ${stations.length} stations but none have ${fuelPriceField} field.`);
-      setData(null);
-      return;
-    }
-
     if (filteredStations.length === 0) {
-      setError(`No data available for ${fuelType}`);
+      setError(`No stations found with ${fuelType} in the selected area`);
       setData(null);
       return;
     }
@@ -157,8 +151,8 @@ function App() {
     startDate.setDate(today.getDate() - timeframe);
 
     filteredStations.forEach(station => {
-      const fuelPrice = station[`prix_${fuelType.toLowerCase()}`];
-      const lastUpdate = station[`prix_${fuelType.toLowerCase()}_maj`] || station.prix_maj;
+      const fuelPrice = station[fuelPriceField];
+      const lastUpdate = station[fuelDateField];
       
       if (fuelPrice) {
         // Use last update date if available, otherwise use current date
@@ -561,19 +555,19 @@ function App() {
                             </Box>
                           </TableCell>
                           <TableCell>
-                            {station.prix_gazole ? `${station.prix_gazole}€` : 'N/A'}
+                            {station.gazole_prix ? `${station.gazole_prix}€` : 'N/A'}
                           </TableCell>
                           <TableCell>
-                            {station.prix_sp95 ? `${station.prix_sp95}€` : 'N/A'}
+                            {station.sp95_prix ? `${station.sp95_prix}€` : 'N/A'}
                           </TableCell>
                           <TableCell>
-                            {station.prix_sp98 ? `${station.prix_sp98}€` : 'N/A'}
+                            {station.sp98_prix ? `${station.sp98_prix}€` : 'N/A'}
                           </TableCell>
                           <TableCell>
-                            {station.prix_e10 ? `${station.prix_e10}€` : 'N/A'}
+                            {station.e10_prix ? `${station.e10_prix}€` : 'N/A'}
                           </TableCell>
                           <TableCell>
-                            {station.prix_maj ? new Date(station.prix_maj).toLocaleString('fr-FR') : 'N/A'}
+                            {station.gazole_maj ? new Date(station.gazole_maj).toLocaleString('fr-FR') : 'N/A'}
                           </TableCell>
                         </TableRow>
                       ))}
