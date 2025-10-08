@@ -25,6 +25,7 @@ const StationFinder = () => {
   const [mapCenter, setMapCenter] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
   const [nearbyStations, setNearbyStations] = useState([]);
+  const [selectedStation, setSelectedStation] = useState(null);
 
   const fuelTypes = [
     { value: 'Gazole', label: 'Diesel (Gazole)' },
@@ -82,8 +83,9 @@ const StationFinder = () => {
     setNearbyStations(location.stations || []);
   };
 
-  const handleStationClick = (station) => {
-    console.log('Station clicked:', station);
+  const handleStationClick = (station, coords) => {
+    setSelectedStation(station);
+    setMapCenter([coords.lat, coords.lon]);
   };
 
   return (
@@ -130,6 +132,7 @@ const StationFinder = () => {
                 selectedFuelType={fuelType}
                 onLocationFound={handleLocationFound}
                 onUseMyLocation={handleUseMyLocation}
+                onStationClick={handleStationClick}
               />
             </Grid>
 
@@ -145,6 +148,7 @@ const StationFinder = () => {
                   onStationClick={handleStationClick}
                   mapCenter={mapCenter}
                   userLocation={userLocation}
+                  selectedStation={selectedStation}
                 />
               </Paper>
             </Grid>

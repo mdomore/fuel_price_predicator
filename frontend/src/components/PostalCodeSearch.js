@@ -9,13 +9,15 @@ import {
   ListItem,
   ListItemText,
   Divider,
-  Chip
+  Chip,
+  ListItemButton
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
 import { sortByDistance, parseCoordinates } from '../utils/distance';
 
-const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUseMyLocation }) => {
+const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUseMyLocation, onStationClick }) => {
   const [postalCode, setPostalCode] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [error, setError] = useState('');
@@ -74,17 +76,34 @@ const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUs
       // Sort all stations by distance from postal code center
       let sorted = sortByDistance(allStations, centerLat, centerLon);
       
-      // Filter by fuel type and sort by price
+      // Filter by fuel type and distance (max 50km)
       const fuelPriceField = `${selectedFuelType?.toLowerCase()}_prix`;
-      sorted = sorted
-        .filter(s => s[fuelPriceField] != null && s[fuelPriceField] !== '')
-        .sort((a, b) => {
-          // First by price (ascending)
-          const priceDiff = (a[fuelPriceField] || 999) - (b[fuelPriceField] || 999);
-          if (Math.abs(priceDiff) > 0.001) return priceDiff;
-          // Then by distance
-          return a.distance - b.distance;
-        });
+      const MAX_DISTANCE_KM = 50;
+      
+      sorted = sorted.filter(s => 
+        s[fuelPriceField] != null && 
+        s[fuelPriceField] !== '' && 
+        s.distance <= MAX_DISTANCE_KM
+      );
+
+      // If not enough stations within 50km, try 100km
+      if (sorted.length < 5) {
+        sorted = sortByDistance(allStations, centerLat, centerLon)
+          .filter(s => 
+            s[fuelPriceField] != null && 
+            s[fuelPriceField] !== '' && 
+            s.distance <= 100
+          );
+      }
+
+      // Sort by distance first (closest stations), then by price
+      sorted = sorted.sort((a, b) => {
+        // First by distance (keep it reasonable)
+        const distDiff = a.distance - b.distance;
+        if (Math.abs(distDiff) > 5) return distDiff; // Significant distance difference
+        // Then by price if stations are close to each other
+        return (a[fuelPriceField] || 999) - (b[fuelPriceField] || 999);
+      });
       
       // Take closest 10 stations
       const nearest = sorted.slice(0, 10);
@@ -118,20 +137,37 @@ const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUs
         const { latitude, longitude } = position.coords;
         setError('');
         
-        // Sort stations by distance from user location, then by price
+        // Sort stations by distance from user location
         let sorted = sortByDistance(allStations, latitude, longitude);
         
-        // Filter by fuel type and sort by price
+        // Filter by fuel type and distance (max 50km)
         const fuelPriceField = `${selectedFuelType?.toLowerCase()}_prix`;
-        sorted = sorted
-          .filter(s => s[fuelPriceField] != null && s[fuelPriceField] !== '')
-          .sort((a, b) => {
-            // First by price (ascending)
-            const priceDiff = (a[fuelPriceField] || 999) - (b[fuelPriceField] || 999);
-            if (Math.abs(priceDiff) > 0.001) return priceDiff;
-            // Then by distance
-            return a.distance - b.distance;
-          });
+        const MAX_DISTANCE_KM = 50;
+        
+        sorted = sorted.filter(s => 
+          s[fuelPriceField] != null && 
+          s[fuelPriceField] !== '' && 
+          s.distance <= MAX_DISTANCE_KM
+        );
+
+        // If not enough stations within 50km, try 100km
+        if (sorted.length < 5) {
+          sorted = sortByDistance(allStations, latitude, longitude)
+            .filter(s => 
+              s[fuelPriceField] != null && 
+              s[fuelPriceField] !== '' && 
+              s.distance <= 100
+            );
+        }
+
+        // Sort by distance first, then by price
+        sorted = sorted.sort((a, b) => {
+          // First by distance (keep it reasonable)
+          const distDiff = a.distance - b.distance;
+          if (Math.abs(distDiff) > 5) return distDiff; // Significant distance difference
+          // Then by price if stations are close to each other
+          return (a[fuelPriceField] || 999) - (b[fuelPriceField] || 999);
+        });
         
         const nearest = sorted.slice(0, 10);
         setSearchResults(nearest);
@@ -152,6 +188,13 @@ const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUs
   };
 
   const fuelPriceField = `${selectedFuelType?.toLowerCase()}_prix`;
+
+  const handleStationClick = (station) => {
+    const coords = parseCoordinates(station);
+    if (coords && onStationClick) {
+      onStationClick(station, coords);
+    }
+  };
 
   return (
     <Paper sx={{ p: 3 }}>
@@ -203,7 +246,16 @@ const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUs
               const fuelPrice = station[fuelPriceField];
               return (
                 <React.Fragment key={index}>
-                  <ListItem alignItems="flex-start">
+                  <ListItemButton 
+                    alignItems="flex-start"
+                    onClick={() => handleStationClick(station)}
+                    sx={{
+                      '&:hover': {
+                        bgcolor: 'action.hover',
+                      }
+                    }}
+                  >
+                    <LocationOnIcon sx={{ mr: 1, mt: 0.5, color: 'primary.main' }} />
                     <ListItemText
                       primary={
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -226,13 +278,13 @@ const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUs
                           </Typography>
                           {station.distance !== undefined && (
                             <Typography variant="caption" color="primary" fontWeight="bold">
-                              {station.distance.toFixed(2)} km away
+                              {station.distance.toFixed(2)} km away • Click to view on map
                             </Typography>
                           )}
                         </>
                       }
                     />
-                  </ListItem>
+                  </ListItemButton>
                   {index < searchResults.length - 1 && <Divider />}
                 </React.Fragment>
               );

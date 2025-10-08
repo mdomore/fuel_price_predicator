@@ -26,14 +26,14 @@ function MapUpdater({ center, zoom }) {
   return null;
 }
 
-const StationMap = ({ stations, selectedFuelType, onStationClick, mapCenter, userLocation }) => {
+const StationMap = ({ stations, selectedFuelType, onStationClick, mapCenter, userLocation, selectedStation }) => {
   const [center, setCenter] = useState([46.603354, 1.888334]); // Center of France
   const [zoom, setZoom] = useState(6);
 
   useEffect(() => {
     if (mapCenter) {
       setCenter(mapCenter);
-      setZoom(13);
+      setZoom(14);
     } else if (userLocation) {
       setCenter(userLocation);
       setZoom(12);
@@ -73,11 +73,25 @@ const StationMap = ({ stations, selectedFuelType, onStationClick, mapCenter, use
           if (!coords) return null;
 
           const fuelPrice = station[`${selectedFuelType?.toLowerCase()}_prix`];
+          const isSelected = selectedStation && 
+            station.adresse === selectedStation.adresse && 
+            station.cp === selectedStation.cp;
+          
+          // Custom icon for selected station
+          const markerIcon = isSelected ? L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41]
+          }) : undefined;
           
           return (
             <Marker
               key={index}
               position={[coords.lat, coords.lon]}
+              icon={markerIcon}
               eventHandlers={{
                 click: () => handleMarkerClick(station),
               }}
