@@ -114,15 +114,23 @@ const StationMap = ({ stations, selectedFuelType, onStationClick, mapCenter, use
             >
               <Popup>
                 <Box sx={{ minWidth: 200 }}>
+                  {station.brand && (
+                    <Typography variant="subtitle2" color="primary" fontWeight="bold">
+                      {station.brand}
+                    </Typography>
+                  )}
                   <Typography variant="subtitle1" fontWeight="bold">
-                    {station.nom || station.adresse}
+                    {station.ville} - {station.adresse}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    {station.adresse}
+                    {station.cp} {station.ville}
+                    {station.pop && ` • ${station.pop === 'R' ? 'Route' : 'Autoroute'}`}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {station.ville} - {station.cp}
-                  </Typography>
+                  {station.id && (
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      Station ID: {station.id}
+                    </Typography>
+                  )}
                   
                   {fuelPrice && (
                     <Box sx={{ mt: 1 }}>

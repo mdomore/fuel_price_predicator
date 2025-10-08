@@ -16,11 +16,13 @@ import SearchIcon from '@mui/icons-material/Search';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import { sortByDistance, parseCoordinates } from '../utils/distance';
+import { enrichStationsWithBrands } from '../utils/overpass';
 
 const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUseMyLocation, onStationClick }) => {
   const [postalCode, setPostalCode] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [error, setError] = useState('');
+  const [loadingBrands, setLoadingBrands] = useState(false);
 
   const handleSearch = async () => {
     setError('Searching...');
@@ -109,7 +111,29 @@ const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUs
       const nearest = sorted.slice(0, 10);
       setSearchResults(nearest);
 
-      // Notify parent component about the location
+      // Enrich with brand names from OSM (in background)
+      setLoadingBrands(true);
+      enrichStationsWithBrands(nearest, centerLat, centerLon)
+        .then(enriched => {
+          setSearchResults(enriched);
+          setLoadingBrands(false);
+          
+          // Update parent with enriched data
+          if (onLocationFound) {
+            onLocationFound({
+              lat: centerLat,
+              lon: centerLon,
+              postalCode,
+              stations: enriched
+            });
+          }
+        })
+        .catch(err => {
+          console.error('Failed to enrich with brands:', err);
+          setLoadingBrands(false);
+        });
+
+      // Notify parent component about the location (with initial data)
       if (onLocationFound) {
         onLocationFound({
           lat: centerLat,
@@ -172,7 +196,28 @@ const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUs
         const nearest = sorted.slice(0, 10);
         setSearchResults(nearest);
 
-        // Notify parent component
+        // Enrich with brand names from OSM (in background)
+        setLoadingBrands(true);
+        enrichStationsWithBrands(nearest, latitude, longitude)
+          .then(enriched => {
+            setSearchResults(enriched);
+            setLoadingBrands(false);
+            
+            // Update parent with enriched data
+            if (onUseMyLocation) {
+              onUseMyLocation({
+                lat: latitude,
+                lon: longitude,
+                stations: enriched
+              });
+            }
+          })
+          .catch(err => {
+            console.error('Failed to enrich with brands:', err);
+            setLoadingBrands(false);
+          });
+
+        // Notify parent component (with initial data)
         if (onUseMyLocation) {
           onUseMyLocation({
             lat: latitude,
@@ -242,9 +287,16 @@ const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUs
 
       {searchResults.length > 0 && (
         <>
-          <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
-            {searchResults.length} Nearest Stations
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, mb: 1 }}>
+            <Typography variant="h6">
+              {searchResults.length} Nearest Stations
+            </Typography>
+            {loadingBrands && (
+              <Typography variant="caption" color="text.secondary">
+                Loading brands...
+              </Typography>
+            )}
+          </Box>
           <List sx={{ maxHeight: 400, overflow: 'auto' }}>
             {searchResults.map((station, index) => {
               const fuelPrice = station[fuelPriceField];
@@ -262,10 +314,17 @@ const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUs
                     <LocationOnIcon sx={{ mr: 1, mt: 0.5, color: 'primary.main' }} />
                     <ListItemText
                       primary={
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography variant="subtitle1">
-                            {station.nom || station.adresse}
-                          </Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
+                          <Box>
+                            {station.brand && (
+                              <Typography variant="caption" color="primary" sx={{ fontWeight: 'bold', display: 'block' }}>
+                                {station.brand}
+                              </Typography>
+                            )}
+                            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                              {station.ville} - {station.adresse}
+                            </Typography>
+                          </Box>
                           {fuelPrice && (
                             <Chip
                               label={`${fuelPrice}€`}
@@ -278,7 +337,8 @@ const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUs
                       secondary={
                         <>
                           <Typography variant="body2" color="text.secondary">
-                            {station.adresse}, {station.ville} ({station.cp})
+                            {station.cp} {station.ville}
+                            {station.pop && ` • ${station.pop === 'R' ? 'Route' : 'Autoroute'}`}
                           </Typography>
                           {station.distance !== undefined && (
                             <Typography variant="caption" color="primary" fontWeight="bold">
