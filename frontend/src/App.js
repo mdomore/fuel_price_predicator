@@ -38,7 +38,7 @@ function NavigationBar() {
   const location = useLocation();
   
   return (
-    <AppBar position="static">
+    <AppBar position="static" sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
       <Toolbar>
         <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontSize: { xs: '1rem', sm: '1.25rem' } }}>
           Fuel Price Predictor
@@ -80,8 +80,11 @@ function NavigationBar() {
 
 function App() {
   return (
-    <Router>
-      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+    <Router basename="/fuelprice">
+      <Box sx={{ 
+        minHeight: '100vh', 
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      }}>
         <NavigationBar />
         <Routes>
           <Route path="/" element={<StationFinder />} />

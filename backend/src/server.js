@@ -6,7 +6,6 @@ const xml2js = require('xml2js');
 const morgan = require('morgan');
 
 const app = express();
-// Vercel serverless: no direct listen/port needed
 
 // Cache for fuel prices data
 let fuelPricesCache = {
@@ -19,7 +18,6 @@ app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
 
-// On Vercel, frontend is served by static build. Do not serve static files here.
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -159,5 +157,8 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
 });
 
-// Export the Express app for Vercel serverless runtime
-module.exports = app;
+// Start server
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Backend server running on port ${PORT}`);
+});

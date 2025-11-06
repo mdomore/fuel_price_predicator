@@ -15,7 +15,7 @@ import {
 import StationMap from '../components/StationMap';
 import PostalCodeSearch from '../components/PostalCodeSearch';
 
-const API_URL = '/api/fuel-prices';
+const API_URL = '/fuelprice/api/fuel-prices';
 
 const StationFinder = () => {
   const [fuelType, setFuelType] = useState('Gazole');
@@ -98,11 +98,32 @@ const StationFinder = () => {
         {/* Fuel Type Selector */}
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3, px: { xs: 2, sm: 0 } }}>
           <FormControl sx={{ minWidth: { xs: '100%', sm: 250 } }}>
-            <InputLabel>Fuel Type</InputLabel>
+            <InputLabel sx={{ color: 'white', '&.Mui-focused': { color: 'white' } }}>Fuel Type</InputLabel>
             <Select
               value={fuelType}
               label="Fuel Type"
               onChange={handleFuelTypeChange}
+              sx={{
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                color: '#333',
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'rgba(255, 255, 255, 0.5)',
+                  borderWidth: '2px'
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'white'
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'white',
+                  borderWidth: '2px'
+                },
+                '& .MuiSelect-icon': {
+                  color: '#667eea'
+                },
+                '&:hover': {
+                  backgroundColor: 'white'
+                }
+              }}
             >
               {fuelTypes.map(type => (
                 <MenuItem key={type.value} value={type.value}>

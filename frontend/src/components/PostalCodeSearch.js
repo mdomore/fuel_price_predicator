@@ -260,33 +260,35 @@ const PostalCodeSearch = ({ allStations, selectedFuelType, onLocationFound, onUs
         Find Nearby Stations
       </Typography>
 
-      <Box sx={{ display: 'flex', gap: 2, mb: 2, flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'flex-start' } }}>
-        <TextField
-          label="Postal Code"
-          value={postalCode}
-          onChange={(e) => setPostalCode(e.target.value)}
-          placeholder="75001"
-          inputProps={{ maxLength: 5, pattern: '[0-9]*' }}
-          sx={{ width: { xs: '100%', sm: 200 } }}
-          onKeyPress={(e) => {
-            if (e.key === 'Enter') handleSearch();
-          }}
-        />
-        <Button
-          variant="contained"
-          startIcon={<SearchIcon />}
-          onClick={handleSearch}
-          fullWidth
-          sx={{ display: { xs: 'flex', sm: 'inline-flex' } }}
-        >
-          Search
-        </Button>
+      <Box sx={{ mb: 2 }}>
+        <Box sx={{ display: 'flex', gap: 2, mb: 2, flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'flex-start' } }}>
+          <TextField
+            label="Postal Code"
+            value={postalCode}
+            onChange={(e) => setPostalCode(e.target.value)}
+            placeholder="75001"
+            inputProps={{ maxLength: 5, pattern: '[0-9]*' }}
+            sx={{ width: { xs: '100%', sm: 200 } }}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') handleSearch();
+            }}
+          />
+          <Button
+            variant="contained"
+            startIcon={<SearchIcon />}
+            onClick={handleSearch}
+            fullWidth
+            sx={{ display: { xs: 'flex', sm: 'inline-flex' } }}
+          >
+            Search
+          </Button>
+        </Box>
         <Button
           variant="outlined"
           startIcon={<MyLocationIcon />}
           onClick={handleUseMyLocation}
           fullWidth
-          sx={{ display: { xs: 'flex', sm: 'inline-flex' } }}
+          sx={{ display: 'flex' }}
         >
           Use My Location
         </Button>

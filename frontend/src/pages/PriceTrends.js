@@ -15,7 +15,7 @@ import {
 import { Line } from 'react-chartjs-2';
 import TradingViewWidget from '../components/TradingViewWidget';
 
-const API_URL = '/api/fuel-prices';
+const API_URL = '/fuelprice/api/fuel-prices';
 
 const calculateTrendLine = (dates, prices) => {
   const xValues = dates.map((_, index) => index);
